@@ -1,7 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { Icons } from "@/components/icons";
+import { ModeSwitcher } from "@/components/mode-switcher";
 import { Toolbar } from "@/components/toolbar";
 
 interface SiteHeaderProps {
@@ -15,13 +16,14 @@ export function SiteHeader({ onToolChange }: SiteHeaderProps = {}) {
 				<Link href="/">
 					<div className="flex flex-row items-center gap-2">
 						<div className="text-primary-foreground flex size-8 items-center justify-center rounded-md">
-							<Image
+							{/* <Image
 								className="size-8"
 								src="/canvas.svg"
 								alt="Canvas logo"
 								width={48}
 								height={48}
-							/>
+							/> */}
+							<Icons.logo className="size-8" />
 						</div>
 						<span className="text-xl font-bold text-primary">Canvas</span>
 					</div>
@@ -29,7 +31,7 @@ export function SiteHeader({ onToolChange }: SiteHeaderProps = {}) {
 
 				<Toolbar onValueChange={onToolChange} />
 
-				<div className="w-28"></div>
+				<ModeSwitcher />
 			</div>
 		</header>
 	);

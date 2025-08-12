@@ -222,7 +222,7 @@ export default function Home() {
 	};
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-background to-muted/40">
+		<div className="min-h-screen bg-background">
 			<SiteHeader onToolChange={setSelectedTool} />
 
 			<main className="flex flex-col h-[calc(100vh-8rem)] pt-8">
