@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { SiteHeader } from "@/components/site-header";
+import { DrawSettings } from "@/components/draw-settings";
 import { cn } from "@/lib/utils";
 
 interface Point {
@@ -9,47 +10,77 @@ interface Point {
 	y: number;
 }
 
+interface DrawingPath {
+	points: Point[];
+	color: string;
+	width: number;
+}
+
 export default function Home() {
 	const [selectedTool, setSelectedTool] = React.useState<string | null>("Drag");
 	const [isMouseDown, setIsMouseDown] = React.useState(false);
 	const [isGrabbing, setIsGrabbing] = React.useState(false);
+	const [isDrawing, setIsDrawing] = React.useState(false);
 	const [offset, setOffset] = React.useState<Point>({ x: 0, y: 0 });
 	const [zoom, setZoom] = React.useState(1);
 	const [lastMousePos, setLastMousePos] = React.useState<Point>({ x: 0, y: 0 });
+	const [paths, setPaths] = React.useState<DrawingPath[]>([]);
+	const [currentPath, setCurrentPath] = React.useState<Point[]>([]);
+	const [brushColor, setBrushColor] = React.useState("#000000");
+	const [brushSize] = React.useState(2);
 	const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
-	const drawGrid = React.useCallback(
-		(ctx: CanvasRenderingContext2D) => {
+	const getCanvasPoint = React.useCallback(
+		(clientX: number, clientY: number): Point => {
 			const canvas = canvasRef.current;
-			if (!canvas) return;
+			if (!canvas) return { x: 0, y: 0 };
 
-			ctx.save();
-			ctx.strokeStyle = "#e5e7eb";
-			ctx.lineWidth = 1 / zoom;
-
-			const gridSize = 50;
-			const startX = Math.floor(-offset.x / zoom / gridSize) * gridSize;
-			const startY = Math.floor(-offset.y / zoom / gridSize) * gridSize;
-			const endX = startX + canvas.width / zoom + gridSize;
-			const endY = startY + canvas.height / zoom + gridSize;
-
-			for (let x = startX; x <= endX; x += gridSize) {
-				ctx.beginPath();
-				ctx.moveTo(x, startY);
-				ctx.lineTo(x, endY);
-				ctx.stroke();
-			}
-
-			for (let y = startY; y <= endY; y += gridSize) {
-				ctx.beginPath();
-				ctx.moveTo(startX, y);
-				ctx.lineTo(endX, y);
-				ctx.stroke();
-			}
-
-			ctx.restore();
+			const rect = canvas.getBoundingClientRect();
+			return {
+				x: (clientX - rect.left - offset.x) / zoom,
+				y: (clientY - rect.top - offset.y) / zoom,
+			};
 		},
 		[offset, zoom],
+	);
+
+	const drawPaths = React.useCallback(
+		(ctx: CanvasRenderingContext2D) => {
+			paths.forEach((path) => {
+				if (path.points.length < 2) return;
+
+				ctx.save();
+				ctx.strokeStyle = path.color;
+				ctx.lineWidth = path.width;
+				ctx.lineCap = "round";
+				ctx.lineJoin = "round";
+
+				ctx.beginPath();
+				ctx.moveTo(path.points[0].x, path.points[0].y);
+				for (let i = 1; i < path.points.length; i++) {
+					ctx.lineTo(path.points[i].x, path.points[i].y);
+				}
+				ctx.stroke();
+				ctx.restore();
+			});
+
+			if (currentPath.length > 1) {
+				ctx.save();
+				ctx.strokeStyle = brushColor;
+				ctx.lineWidth = brushSize;
+				ctx.lineCap = "round";
+				ctx.lineJoin = "round";
+
+				ctx.beginPath();
+				ctx.moveTo(currentPath[0].x, currentPath[0].y);
+				for (let i = 1; i < currentPath.length; i++) {
+					ctx.lineTo(currentPath[i].x, currentPath[i].y);
+				}
+				ctx.stroke();
+				ctx.restore();
+			}
+		},
+		[paths, currentPath, brushColor, brushSize],
 	);
 
 	const redraw = React.useCallback(() => {
@@ -63,10 +94,10 @@ export default function Home() {
 		ctx.translate(offset.x, offset.y);
 		ctx.scale(zoom, zoom);
 
-		drawGrid(ctx);
+		drawPaths(ctx);
 
 		ctx.restore();
-	}, [offset, zoom, drawGrid]);
+	}, [offset, zoom, drawPaths]);
 
 	const resizeCanvas = React.useCallback(() => {
 		const canvas = canvasRef.current;
@@ -103,16 +134,33 @@ export default function Home() {
 
 	const handleMouseDown = (e: React.MouseEvent) => {
 		setIsMouseDown(true);
+		const point = getCanvasPoint(e.clientX, e.clientY);
 
 		if (selectedTool === "Drag") {
 			setIsGrabbing(true);
 			setLastMousePos({ x: e.clientX, y: e.clientY });
+		} else if (selectedTool === "Draw") {
+			setIsDrawing(true);
+			setCurrentPath([point]);
 		}
 	};
 
 	const handleMouseUp = () => {
+		if (isDrawing && currentPath.length > 1) {
+			setPaths((prev) => [
+				...prev,
+				{
+					points: currentPath,
+					color: brushColor,
+					width: brushSize,
+				},
+			]);
+			setCurrentPath([]);
+		}
+
 		setIsMouseDown(false);
 		setIsGrabbing(false);
+		setIsDrawing(false);
 	};
 
 	const handleMouseMove = (e: React.MouseEvent) => {
@@ -126,6 +174,9 @@ export default function Home() {
 			}));
 
 			setLastMousePos({ x: e.clientX, y: e.clientY });
+		} else if (selectedTool === "Draw" && isDrawing) {
+			const point = getCanvasPoint(e.clientX, e.clientY);
+			setCurrentPath((prev) => [...prev, point]);
 		}
 	};
 
@@ -191,6 +242,13 @@ export default function Home() {
 						onMouseLeave={handleMouseUp}
 						onWheel={handleWheel}
 					/>
+
+					{selectedTool === "Draw" && (
+						<DrawSettings
+							brushColor={brushColor}
+							onBrushColorChange={setBrushColor}
+						/>
+					)}
 				</div>
 			</main>
 		</div>
