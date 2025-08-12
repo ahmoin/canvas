@@ -2,7 +2,6 @@
 
 import { useMutation, useQuery } from "convex/react";
 import * as React from "react";
-import { DrawSettings } from "@/components/draw-settings";
 import { CanvasSettings } from "@/components/canvas-settings";
 import { SiteHeader } from "@/components/site-header";
 import { api } from "@/convex/_generated/api";
