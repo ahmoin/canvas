@@ -24,7 +24,7 @@ export default function Home() {
 	const addPath = useMutation(api.myFunctions.addPath);
 	const [currentPath, setCurrentPath] = React.useState<Point[]>([]);
 	const [brushColor, setBrushColor] = React.useState("#000000");
-	const [brushSize, setBrushSize] = React.useState(2);
+	const [brushSize, setBrushSize] = React.useState(2.0);
 	const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
 	const getCanvasPoint = React.useCallback(
@@ -48,7 +48,7 @@ export default function Home() {
 
 				ctx.save();
 				ctx.strokeStyle = path.color;
-				ctx.lineWidth = Math.max(1, Math.min(50, path.width));
+				ctx.lineWidth = Math.max(0.0000001, Math.min(50, path.width));
 				ctx.lineCap = "round";
 				ctx.lineJoin = "round";
 
@@ -64,7 +64,7 @@ export default function Home() {
 			if (currentPath.length > 1) {
 				ctx.save();
 				ctx.strokeStyle = brushColor;
-				ctx.lineWidth = Math.max(1, Math.min(50, brushSize));
+				ctx.lineWidth = Math.max(0.0000001, Math.min(50, brushSize));
 				ctx.lineCap = "round";
 				ctx.lineJoin = "round";
 

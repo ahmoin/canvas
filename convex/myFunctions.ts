@@ -26,8 +26,7 @@ export const addPath = mutation({
 		width: v.number(),
 	},
 	handler: async (ctx, args) => {
-		// Clamp width between 1 and 50
-		const clampedWidth = Math.max(1, Math.min(50, args.width));
+		const clampedWidth = Math.max(0.0000001, Math.min(50, args.width));
 
 		return await ctx.db.insert("paths", {
 			points: args.points,

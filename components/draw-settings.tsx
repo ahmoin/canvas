@@ -189,12 +189,16 @@ export function DrawSettings({
 
 			if (isDraggingSize) {
 				const delta = deltaX + deltaY;
-				const sensitivity = 0.2;
-				const newValue = Math.max(
-					1,
-					Math.min(50, Math.round(dragStartValue + delta * sensitivity)),
-				);
-				onBrushSizeChange(newValue);
+
+				// value = startValue * (2 ^ (delta / pixelsPerDoubling))
+				const pixelsPerDoubling = 20;
+				const exponentialMultiplier = Math.pow(2, delta / pixelsPerDoubling);
+				const exponentialValue = dragStartValue * exponentialMultiplier;
+
+				const newValue = Math.max(0.0000001, Math.min(50, exponentialValue));
+
+				const roundedValue = Math.round(newValue * 10000000) / 10000000;
+				onBrushSizeChange(roundedValue);
 			}
 		},
 		[
@@ -220,9 +224,7 @@ export function DrawSettings({
 		};
 
 		const handleMouseUp = () => {
-			// If we were tracking mouse down but never started dragging, it was just a click
 			if (mouseDownOnInput && !isDraggingSize && sizeInputRef.current) {
-				// Focus and select all text for easy editing
 				sizeInputRef.current.focus();
 				sizeInputRef.current.select();
 			}
@@ -327,14 +329,14 @@ export function DrawSettings({
 					ref={sizeInputRef}
 					id="stroke-width"
 					type="number"
-					min="1"
+					min="0.0000001"
 					max="50"
-					step="1"
+					step="0.1"
 					value={brushSize}
 					onChange={(e) => {
 						const value = Math.max(
-							1,
-							Math.min(50, parseInt(e.target.value) || 1),
+							0.0000001,
+							Math.min(50, parseFloat(e.target.value) || 0.0000001),
 						);
 						onBrushSizeChange(value);
 					}}
