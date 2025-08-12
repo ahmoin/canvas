@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { DragNumberInput } from "@/components/drag-number-input";
 
 interface DrawSettingsProps {
 	brushColor: string;
@@ -112,13 +113,8 @@ export function DrawSettings({
 	const [hsv, setHsv] = React.useState(() => rgbToHsv(rgb[0], rgb[1], rgb[2]));
 	const [isDraggingSV, setIsDraggingSV] = React.useState(false);
 	const [isDraggingHue, setIsDraggingHue] = React.useState(false);
-	const [isDraggingSize, setIsDraggingSize] = React.useState(false);
-	const [dragStartPos, setDragStartPos] = React.useState({ x: 0, y: 0 });
-	const [dragStartValue, setDragStartValue] = React.useState(0);
-	const [mouseDownOnInput, setMouseDownOnInput] = React.useState(false);
 	const svRef = React.useRef<HTMLButtonElement>(null);
 	const hueRef = React.useRef<HTMLButtonElement>(null);
-	const sizeInputRef = React.useRef<HTMLInputElement>(null);
 
 	const updateColor = React.useCallback(
 		(newHsv: [number, number, number]) => {
@@ -163,53 +159,7 @@ export function DrawSettings({
 		updateColor([hue, hsv[1], hsv[2]]);
 	};
 
-	const handleSizeMouseDown = (e: React.MouseEvent) => {
-		setMouseDownOnInput(true);
-		setDragStartPos({ x: e.clientX, y: e.clientY });
-		setDragStartValue(brushSize);
 
-		e.preventDefault();
-	};
-
-	const handleSizeDrag = React.useCallback(
-		(e: MouseEvent) => {
-			if (!mouseDownOnInput) return;
-
-			const deltaX = e.clientX - dragStartPos.x;
-			const deltaY = dragStartPos.y - e.clientY;
-			const totalMovement = Math.abs(deltaX) + Math.abs(deltaY);
-
-			if (totalMovement > 3 && !isDraggingSize) {
-				setIsDraggingSize(true);
-				if (sizeInputRef.current) {
-					sizeInputRef.current.blur();
-				}
-				document.getSelection()?.removeAllRanges();
-			}
-
-			if (isDraggingSize) {
-				const delta = deltaX + deltaY;
-
-				// value = startValue * (2 ^ (delta / pixelsPerDoubling))
-				const pixelsPerDoubling = 20;
-				const exponentialMultiplier = Math.pow(2, delta / pixelsPerDoubling);
-				const exponentialValue = dragStartValue * exponentialMultiplier;
-
-				const newValue = Math.max(0.0000001, Math.min(50, exponentialValue));
-
-				const roundedValue = Math.round(newValue * 10000000) / 10000000;
-				onBrushSizeChange(roundedValue);
-			}
-		},
-		[
-			mouseDownOnInput,
-			dragStartPos.x,
-			dragStartPos.y,
-			isDraggingSize,
-			dragStartValue,
-			onBrushSizeChange,
-		],
-	);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: handle color change dependencies change on every re-render and should not be used as hook dependencies
 	React.useEffect(() => {
@@ -218,24 +168,15 @@ export function DrawSettings({
 				handleSVMove(e);
 			} else if (isDraggingHue) {
 				handleHueMove(e);
-			} else if (mouseDownOnInput) {
-				handleSizeDrag(e);
 			}
 		};
 
 		const handleMouseUp = () => {
-			if (mouseDownOnInput && !isDraggingSize && sizeInputRef.current) {
-				sizeInputRef.current.focus();
-				sizeInputRef.current.select();
-			}
-
 			setIsDraggingSV(false);
 			setIsDraggingHue(false);
-			setIsDraggingSize(false);
-			setMouseDownOnInput(false);
 		};
 
-		if (isDraggingSV || isDraggingHue || mouseDownOnInput) {
+		if (isDraggingSV || isDraggingHue) {
 			document.addEventListener("mousemove", handleMouseMove);
 			document.addEventListener("mouseup", handleMouseUp);
 		}
@@ -244,16 +185,7 @@ export function DrawSettings({
 			document.removeEventListener("mousemove", handleMouseMove);
 			document.removeEventListener("mouseup", handleMouseUp);
 		};
-	}, [
-		isDraggingSV,
-		isDraggingHue,
-		isDraggingSize,
-		mouseDownOnInput,
-		dragStartPos,
-		dragStartValue,
-		brushSize,
-		onBrushSizeChange,
-	]);
+	}, [isDraggingSV, isDraggingHue]);
 
 	const svStyle = {
 		background: `linear-gradient(to bottom, transparent 0%, black 100%), linear-gradient(to right, white 0%, transparent 100%)`,
@@ -325,23 +257,15 @@ export function DrawSettings({
 				>
 					Stroke Width
 				</label>
-				<input
-					ref={sizeInputRef}
+				<DragNumberInput
 					id="stroke-width"
-					type="number"
-					min="0.0000001"
-					max="50"
-					step="0.1"
 					value={brushSize}
-					onChange={(e) => {
-						const value = Math.max(
-							0.0000001,
-							Math.min(50, parseFloat(e.target.value) || 0.0000001),
-						);
-						onBrushSizeChange(value);
-					}}
-					onMouseDown={handleSizeMouseDown}
-					className="w-full px-2 py-1 text-sm border border-border rounded bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent cursor-ns-resize select-none"
+					onChange={onBrushSizeChange}
+					min={0.0000001}
+					max={50}
+					step={0.1}
+					precision={7}
+					pixelsPerDoubling={20}
 				/>
 			</div>
 		</div>
