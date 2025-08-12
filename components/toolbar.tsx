@@ -40,21 +40,26 @@ export function Toolbar() {
 					}}
 				>
 					{TABS.map((tab) => (
-						<Tooltip key={tab.label}>
-							<TooltipTrigger asChild>
-								<Button
-									data-id={tab.label}
-									variant="ghost"
-									size="icon"
-									className="inline-flex size-10 items-center justify-center text-primary/50 transition-colors duration-100 focus-visible:outline-2 data-[checked=true]:text-primary-foreground"
-								>
-									{tab.icon}
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent>
-								<p>{tab.label}</p>
-							</TooltipContent>
-						</Tooltip>
+						<div
+							key={tab.label}
+							data-id={tab.label}
+							className="data-[checked=true]:[&_button]:text-primary-foreground"
+						>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="ghost"
+										size="icon"
+										className="inline-flex size-10 items-center justify-center text-primary/50 transition-colors duration-100 focus-visible:outline-2"
+									>
+										{tab.icon}
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent>
+									<p>{tab.label}</p>
+								</TooltipContent>
+							</Tooltip>
+						</div>
 					))}
 				</AnimatedBackground>
 			</div>
