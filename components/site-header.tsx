@@ -4,7 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { Toolbar } from "@/components/toolbar";
 
-export function SiteHeader() {
+interface SiteHeaderProps {
+	onToolChange?: (newActiveId: string | null) => void;
+}
+
+export function SiteHeader({ onToolChange }: SiteHeaderProps = {}) {
 	return (
 		<header className="sticky top-0 z-10 bg-background p-4 border-b-2 flex flex-row justify-between items-center">
 			<div className="flex items-center justify-between w-full gap-8">
@@ -23,7 +27,7 @@ export function SiteHeader() {
 					</div>
 				</Link>
 
-				<Toolbar />
+				<Toolbar onValueChange={onToolChange} />
 
 				<div className="w-28"></div>
 			</div>

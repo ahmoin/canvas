@@ -5,7 +5,6 @@ import { fontVariables } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 
 import "@/styles/globals.css";
-import { SiteFooter } from "@/components/site-footer";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { META_THEME_COLORS } from "@/lib/config";
@@ -51,7 +50,6 @@ export default function RootLayout({
 						<ThemeProvider>
 							<div className="min-h-screen flex flex-col">
 								<section className="theme-container flex-1">{children}</section>
-								<SiteFooter />
 							</div>
 							<Toaster position="top-center" richColors />
 						</ThemeProvider>

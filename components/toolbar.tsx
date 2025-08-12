@@ -1,4 +1,5 @@
 import { Hand, MousePointer2, Pencil, TypeOutline } from "lucide-react";
+import * as React from "react";
 import { AnimatedBackground } from "@/components/motion-primitives/animated-background";
 import { Button } from "@/components/ui/button";
 import {
@@ -6,9 +7,12 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import * as React from "react";
 
-export function Toolbar() {
+interface ToolbarProps {
+	onValueChange?: (newActiveId: string | null) => void;
+}
+
+export function Toolbar({ onValueChange }: ToolbarProps = {}) {
 	const buttonRefs = React.useRef<(HTMLButtonElement | null)[]>([]);
 
 	const TABS = [
@@ -57,6 +61,7 @@ export function Toolbar() {
 						bounce: 0.2,
 						duration: 0.3,
 					}}
+					onValueChange={onValueChange}
 				>
 					{TABS.map((tab, index) => (
 						<div
