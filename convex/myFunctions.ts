@@ -2,37 +2,37 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 const pointSchema = v.object({
-  x: v.number(),
-  y: v.number(),
+	x: v.number(),
+	y: v.number(),
 });
 
 const pathSchema = v.object({
-  points: v.array(pointSchema),
-  color: v.string(),
-  width: v.number(),
+	points: v.array(pointSchema),
+	color: v.string(),
+	width: v.number(),
 });
 
 export const getPaths = query({
-  args: {},
-  handler: async (ctx) => {
-    return await ctx.db.query("paths").collect();
-  },
+	args: {},
+	handler: async (ctx) => {
+		return await ctx.db.query("paths").collect();
+	},
 });
 
 export const addPath = mutation({
-  args: {
-    points: v.array(pointSchema),
-    color: v.string(),
-    width: v.number(),
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db.insert("paths", {
-      points: args.points,
-      color: args.color,
-      width: args.width,
-      createdAt: Date.now(),
-    });
-  },
+	args: {
+		points: v.array(pointSchema),
+		color: v.string(),
+		width: v.number(),
+	},
+	handler: async (ctx, args) => {
+		return await ctx.db.insert("paths", {
+			points: args.points,
+			color: args.color,
+			width: args.width,
+			createdAt: Date.now(),
+		});
+	},
 });
 
 // export const clearPaths = mutation({

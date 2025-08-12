@@ -67,7 +67,7 @@ export function Toolbar({ onValueChange }: ToolbarProps = {}) {
 						<div
 							key={tab.label}
 							data-id={tab.label}
-							className="data-[checked=true]:[&_button]:text-primary-foreground data-[checked=true]:[&_span]:text-primary-foreground relative"
+							className="data-[checked=true]:[&_button]:text-primary data-[checked=true]:[&_span]:text-primary relative"
 						>
 							<Tooltip>
 								<TooltipTrigger asChild>

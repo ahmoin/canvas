@@ -8,10 +8,12 @@ import { v } from "convex/values";
 export default defineSchema({
 	...authTables,
 	paths: defineTable({
-		points: v.array(v.object({
-			x: v.number(),
-			y: v.number(),
-		})),
+		points: v.array(
+			v.object({
+				x: v.number(),
+				y: v.number(),
+			}),
+		),
 		color: v.string(),
 		width: v.number(),
 		createdAt: v.number(),
