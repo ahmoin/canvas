@@ -121,12 +121,12 @@ export function DrawSettings({
 		[onBrushColorChange],
 	);
 
-	const handleSVMouseDown = (e: MouseEvent | React.MouseEvent) => {
+	const handleSVMouseDown = (e: React.MouseEvent) => {
 		setIsDraggingSV(true);
 		handleSVMove(e);
 	};
 
-	const handleSVMove = (e: MouseEvent | React.MouseEvent) => {
+	const handleSVMove = (e: React.MouseEvent | MouseEvent) => {
 		if (!svRef.current) return;
 
 		const rect = svRef.current.getBoundingClientRect();
@@ -139,12 +139,12 @@ export function DrawSettings({
 		updateColor([hsv[0], x, y]);
 	};
 
-	const handleHueMouseDown = (e: MouseEvent | React.MouseEvent) => {
+	const handleHueMouseDown = (e: React.MouseEvent) => {
 		setIsDraggingHue(true);
 		handleHueMove(e);
 	};
 
-	const handleHueMove = (e: MouseEvent | React.MouseEvent) => {
+	const handleHueMove = (e: React.MouseEvent | MouseEvent) => {
 		if (!hueRef.current) return;
 
 		const rect = hueRef.current.getBoundingClientRect();
@@ -156,7 +156,7 @@ export function DrawSettings({
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: handle color change dependencies change on every re-render and should not be used as hook dependencies
 	React.useEffect(() => {
-		const handleMouseMove = (e: MouseEvent | React.MouseEvent) => {
+		const handleMouseMove = (e: React.MouseEvent | MouseEvent) => {
 			if (isDraggingSV) {
 				handleSVMove(e);
 			} else if (isDraggingHue) {
@@ -180,7 +180,14 @@ export function DrawSettings({
 		};
 	}, [isDraggingSV, isDraggingHue]);
 
-	const svBackground = `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${hsv[0]}, 100%, 50%))`;
+	const svStyle = {
+		background: `linear-gradient(to bottom, transparent 0%, black 100%), linear-gradient(to right, white 0%, transparent 100%)`,
+		backgroundColor: `hsl(${hsv[0]}, 100%, 50%)`,
+		backgroundSize: "100% 100%",
+		backgroundRepeat: "no-repeat",
+		backgroundPosition: "0 0",
+	};
+
 	const hueBackground =
 		"linear-gradient(to bottom, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)";
 
@@ -193,8 +200,8 @@ export function DrawSettings({
 					<button
 						ref={svRef}
 						type="button"
-						className="size-48 cursor-crosshair border border-border rounded p-0 relative"
-						style={{ background: svBackground }}
+						className="size-48 cursor-crosshair rounded relative overflow-hidden"
+						style={svStyle}
 						onMouseDown={handleSVMouseDown}
 						aria-label="Select saturation and brightness"
 					>
@@ -228,12 +235,12 @@ export function DrawSettings({
 				</div>
 			</div>
 
-			{/* Current Color Preview */}
 			<div className="mt-3 flex items-center gap-2">
 				<div
 					className="w-8 h-8 border border-border rounded"
 					style={{ backgroundColor: brushColor }}
 				/>
+				<span className="text-xs font-mono">{brushColor.toUpperCase()}</span>
 				<span className="text-xs font-mono">{brushColor.toUpperCase()}</span>
 			</div>
 		</div>
