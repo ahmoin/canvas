@@ -1,13 +1,14 @@
 "use client";
 
+import { X } from "lucide-react";
 import * as React from "react";
-import { DragNumberInput } from "@/components/drag-number-input";
+import { Button } from "@/components/ui/button";
 
 interface DrawSettingsProps {
 	brushColor: string;
 	onBrushColorChange: (color: string) => void;
-	brushSize: number;
-	onBrushSizeChange: (size: number) => void;
+	onColorSelectionComplete?: () => void;
+	onClose?: () => void;
 }
 
 function hsvToRgb(h: number, s: number, v: number): [number, number, number] {
@@ -106,8 +107,8 @@ function rgbToHex(r: number, g: number, b: number): string {
 export function DrawSettings({
 	brushColor,
 	onBrushColorChange,
-	brushSize,
-	onBrushSizeChange,
+	onColorSelectionComplete,
+	onClose,
 }: DrawSettingsProps) {
 	const [rgb] = React.useState(() => hexToRgb(brushColor));
 	const [hsv, setHsv] = React.useState(() => rgbToHsv(rgb[0], rgb[1], rgb[2]));
@@ -159,8 +160,6 @@ export function DrawSettings({
 		updateColor([hue, hsv[1], hsv[2]]);
 	};
 
-
-
 	// biome-ignore lint/correctness/useExhaustiveDependencies: handle color change dependencies change on every re-render and should not be used as hook dependencies
 	React.useEffect(() => {
 		const handleMouseMove = (e: MouseEvent) => {
@@ -172,8 +171,13 @@ export function DrawSettings({
 		};
 
 		const handleMouseUp = () => {
+			const wasInteracting = isDraggingSV || isDraggingHue;
 			setIsDraggingSV(false);
 			setIsDraggingHue(false);
+
+			if (wasInteracting && onColorSelectionComplete) {
+				onColorSelectionComplete();
+			}
 		};
 
 		if (isDraggingSV || isDraggingHue) {
@@ -200,7 +204,20 @@ export function DrawSettings({
 
 	return (
 		<div className="absolute left-4 top-1/2 -translate-y-1/2 bg-background border border-border rounded-lg p-4 shadow-lg">
-			<h3 className="text-sm font-medium mb-3">Stroke Color</h3>
+			<div className="flex items-center justify-between mb-3">
+				<h3 className="text-sm font-medium">Stroke Color</h3>
+				{onClose && (
+					<Button
+						variant="ghost"
+						size="icon"
+						onClick={onClose}
+						className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-accent"
+						aria-label="Close color picker"
+					>
+						<X />
+					</Button>
+				)}
+			</div>
 
 			<div className="flex gap-3">
 				<div className="relative">
@@ -248,25 +265,6 @@ export function DrawSettings({
 					style={{ backgroundColor: brushColor }}
 				/>
 				<span className="text-xs font-mono">{brushColor.toUpperCase()}</span>
-			</div>
-
-			<div className="mt-3">
-				<label
-					htmlFor="stroke-width"
-					className="text-sm font-medium mb-2 block"
-				>
-					Stroke Width
-				</label>
-				<DragNumberInput
-					id="stroke-width"
-					value={brushSize}
-					onChange={onBrushSizeChange}
-					min={0.0000001}
-					max={50}
-					step={0.1}
-					precision={7}
-					pixelsPerDoubling={20}
-				/>
 			</div>
 		</div>
 	);

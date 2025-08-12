@@ -3,6 +3,7 @@
 import { useMutation, useQuery } from "convex/react";
 import * as React from "react";
 import { DrawSettings } from "@/components/draw-settings";
+import { CanvasSettings } from "@/components/canvas-settings";
 import { SiteHeader } from "@/components/site-header";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
@@ -225,7 +226,7 @@ export default function Home() {
 		<div className="min-h-screen bg-background">
 			<SiteHeader onToolChange={setSelectedTool} />
 
-			<main className="flex flex-col h-[calc(100vh-8rem)] pt-8">
+			<main className="flex flex-col h-[calc(100vh-8rem)]">
 				<div className="flex-1 relative overflow-hidden">
 					<canvas
 						ref={canvasRef}
@@ -237,14 +238,19 @@ export default function Home() {
 						onWheel={handleWheel}
 					/>
 
-					{selectedTool === "Draw" && (
-						<DrawSettings
-							brushColor={brushColor}
-							onBrushColorChange={setBrushColor}
-							brushSize={brushSize}
-							onBrushSizeChange={setBrushSize}
-						/>
-					)}
+					<CanvasSettings
+						selectedTool={selectedTool}
+						brushColor={brushColor}
+						onBrushColorChange={setBrushColor}
+						brushSize={brushSize}
+						onBrushSizeChange={setBrushSize}
+						zoom={zoom}
+						onZoomChange={setZoom}
+						offsetX={offset.x}
+						offsetY={offset.y}
+						onOffsetXChange={(x) => setOffset((prev) => ({ ...prev, x }))}
+						onOffsetYChange={(y) => setOffset((prev) => ({ ...prev, y }))}
+					/>
 				</div>
 			</main>
 		</div>

@@ -65,14 +65,24 @@ export function DragNumberInput({
 			if (isDragging) {
 				const delta = deltaX + deltaY;
 
-				// value = startValue * (2 ^ (delta / pixelsPerDoubling))
-				const exponentialMultiplier = Math.pow(2, delta / pixelsPerDoubling);
-				const exponentialValue = dragStartValue * exponentialMultiplier;
+				let newValue = null;
 
-				const newValue = Math.max(min, Math.min(max, exponentialValue));
+				if (dragStartValue === 0) {
+					const sensitivity = 0.1;
+					newValue = delta * sensitivity;
+				} else if (dragStartValue > 0) {
+					const exponentialMultiplier = Math.pow(2, delta / pixelsPerDoubling);
+					newValue = dragStartValue * exponentialMultiplier;
+				} else {
+					const absStartValue = Math.abs(dragStartValue);
+					const exponentialMultiplier = Math.pow(2, -delta / pixelsPerDoubling);
+					newValue = -(absStartValue * exponentialMultiplier);
+				}
+
+				const clampedValue = Math.max(min, Math.min(max, newValue));
 
 				const multiplier = Math.pow(10, precision);
-				const roundedValue = Math.round(newValue * multiplier) / multiplier;
+				const roundedValue = Math.round(clampedValue * multiplier) / multiplier;
 				onChange(roundedValue);
 			}
 		},
@@ -123,7 +133,8 @@ export function DragNumberInput({
 		if (disabled) return;
 
 		const inputValue = parseFloat(e.target.value);
-		const clampedValue = Math.max(min, Math.min(max, inputValue || min));
+		const valueToUse = Number.isNaN(inputValue) ? min : inputValue;
+		const clampedValue = Math.max(min, Math.min(max, valueToUse));
 		onChange(clampedValue);
 	};
 
