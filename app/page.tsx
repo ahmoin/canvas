@@ -1,19 +1,15 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
 import * as React from "react";
-import { SiteHeader } from "@/components/site-header";
 import { DrawSettings } from "@/components/draw-settings";
+import { SiteHeader } from "@/components/site-header";
+import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
 
 interface Point {
 	x: number;
 	y: number;
-}
-
-interface DrawingPath {
-	points: Point[];
-	color: string;
-	width: number;
 }
 
 export default function Home() {
@@ -24,7 +20,8 @@ export default function Home() {
 	const [offset, setOffset] = React.useState<Point>({ x: 0, y: 0 });
 	const [zoom, setZoom] = React.useState(1);
 	const [lastMousePos, setLastMousePos] = React.useState<Point>({ x: 0, y: 0 });
-	const [paths, setPaths] = React.useState<DrawingPath[]>([]);
+	const convexPaths = useQuery(api.myFunctions.getPaths) || [];
+	const addPath = useMutation(api.myFunctions.addPath);
 	const [currentPath, setCurrentPath] = React.useState<Point[]>([]);
 	const [brushColor, setBrushColor] = React.useState("#000000");
 	const [brushSize] = React.useState(2);
@@ -46,7 +43,7 @@ export default function Home() {
 
 	const drawPaths = React.useCallback(
 		(ctx: CanvasRenderingContext2D) => {
-			paths.forEach((path) => {
+			convexPaths.forEach((path) => {
 				if (path.points.length < 2) return;
 
 				ctx.save();
@@ -80,7 +77,7 @@ export default function Home() {
 				ctx.restore();
 			}
 		},
-		[paths, currentPath, brushColor, brushSize],
+		[convexPaths, currentPath, brushColor, brushSize],
 	);
 
 	const redraw = React.useCallback(() => {
@@ -147,14 +144,11 @@ export default function Home() {
 
 	const handleMouseUp = () => {
 		if (isDrawing && currentPath.length > 1) {
-			setPaths((prev) => [
-				...prev,
-				{
-					points: currentPath,
-					color: brushColor,
-					width: brushSize,
-				},
-			]);
+			addPath({
+				points: currentPath,
+				color: brushColor,
+				width: brushSize,
+			});
 			setCurrentPath([]);
 		}
 

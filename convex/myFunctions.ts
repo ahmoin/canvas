@@ -1,6 +1,46 @@
-// This file can be used for additional utility functions
+import { mutation, query } from "./_generated/server";
+import { v } from "convex/values";
 
-// You can add more functions here as your mental health app grows
-// For example: user profiles, progress analytics, notifications, etc.
+const pointSchema = v.object({
+  x: v.number(),
+  y: v.number(),
+});
 
-export {}; // This makes it a module
+const pathSchema = v.object({
+  points: v.array(pointSchema),
+  color: v.string(),
+  width: v.number(),
+});
+
+export const getPaths = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("paths").collect();
+  },
+});
+
+export const addPath = mutation({
+  args: {
+    points: v.array(pointSchema),
+    color: v.string(),
+    width: v.number(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("paths", {
+      points: args.points,
+      color: args.color,
+      width: args.width,
+      createdAt: Date.now(),
+    });
+  },
+});
+
+// export const clearPaths = mutation({
+//   args: {},
+//   handler: async (ctx) => {
+//     const paths = await ctx.db.query("paths").collect();
+//     for (const path of paths) {
+//       await ctx.db.delete(path._id);
+//     }
+//   },
+// });
