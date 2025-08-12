@@ -6,8 +6,11 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import * as React from "react";
 
 export function Toolbar() {
+	const buttonRefs = React.useRef<(HTMLButtonElement | null)[]>([]);
+
 	const TABS = [
 		{
 			label: "Drag",
@@ -27,6 +30,22 @@ export function Toolbar() {
 		},
 	];
 
+	React.useEffect(() => {
+		const handleKeyDown = (event: KeyboardEvent) => {
+			const key = event.key;
+			const keyNumber = parseInt(key);
+
+			if (keyNumber >= 1 && keyNumber <= TABS.length) {
+				event.preventDefault();
+				const buttonIndex = keyNumber - 1;
+				buttonRefs.current[buttonIndex]?.click();
+			}
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, []);
+
 	return (
 		<div className="bottom-8">
 			<div className="flex w-full space-x-2 rounded-xl border border-primary/10 bg-primary/10 p-2">
@@ -39,15 +58,18 @@ export function Toolbar() {
 						duration: 0.3,
 					}}
 				>
-					{TABS.map((tab) => (
+					{TABS.map((tab, index) => (
 						<div
 							key={tab.label}
 							data-id={tab.label}
-							className="data-[checked=true]:[&_button]:text-primary-foreground"
+							className="data-[checked=true]:[&_button]:text-primary-foreground data-[checked=true]:[&_span]:text-primary-foreground relative"
 						>
 							<Tooltip>
 								<TooltipTrigger asChild>
 									<Button
+										ref={(el) => {
+											buttonRefs.current[index] = el;
+										}}
 										variant="ghost"
 										size="icon"
 										className="inline-flex size-10 items-center justify-center text-primary/50 transition-colors duration-100 focus-visible:outline-2"
@@ -59,6 +81,9 @@ export function Toolbar() {
 									<p>{tab.label}</p>
 								</TooltipContent>
 							</Tooltip>
+							<span className="absolute bottom-0 right-0 flex size-4 items-center justify-center text-mono text-xs text-primary/50">
+								{index + 1}
+							</span>
 						</div>
 					))}
 				</AnimatedBackground>

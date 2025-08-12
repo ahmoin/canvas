@@ -1,19 +1,12 @@
 "use client";
 import { AnimatePresence, motion, type Transition } from "motion/react";
-import {
-	Children,
-	cloneElement,
-	type ReactElement,
-	useEffect,
-	useId,
-	useState,
-} from "react";
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export type AnimatedBackgroundProps = {
 	children:
-		| ReactElement<{ "data-id": string }>[]
-		| ReactElement<{ "data-id": string }>;
+		| React.ReactElement<{ "data-id": string }>[]
+		| React.ReactElement<{ "data-id": string }>;
 	defaultValue?: string;
 	onValueChange?: (newActiveId: string | null) => void;
 	className?: string;
@@ -29,8 +22,8 @@ export function AnimatedBackground({
 	transition,
 	enableHover = false,
 }: AnimatedBackgroundProps) {
-	const [activeId, setActiveId] = useState<string | null>(null);
-	const uniqueId = useId();
+	const [activeId, setActiveId] = React.useState<string | null>(null);
+	const uniqueId = React.useId();
 
 	const handleSetActiveId = (id: string | null) => {
 		setActiveId(id);
@@ -40,14 +33,14 @@ export function AnimatedBackground({
 		}
 	};
 
-	useEffect(() => {
+	React.useEffect(() => {
 		if (defaultValue !== undefined) {
 			setActiveId(defaultValue);
 		}
 	}, [defaultValue]);
 
 	// biome-ignore lint/suspicious/noExplicitAny: needed for motion
-	return Children.map(children, (child: any, index) => {
+	return React.Children.map(children, (child: any, index) => {
 		const id = child.props["data-id"];
 
 		const interactionProps = enableHover
@@ -59,7 +52,7 @@ export function AnimatedBackground({
 					onClick: () => handleSetActiveId(id),
 				};
 
-		return cloneElement(
+		return React.cloneElement(
 			child,
 			{
 				// biome-ignore lint/suspicious/noArrayIndexKey: needed for motion
