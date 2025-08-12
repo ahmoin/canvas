@@ -186,7 +186,7 @@ export default function Home() {
 			const mouseY = e.clientY - rect.top;
 
 			const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-			const newZoom = Math.max(0.1, Math.min(5, zoom * zoomFactor));
+			const newZoom = zoom * zoomFactor;
 
 			const zoomRatio = newZoom / zoom;
 			setOffset((prev) => ({
