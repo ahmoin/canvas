@@ -36,6 +36,15 @@ export function Toolbar({ onValueChange }: ToolbarProps = {}) {
 
 	React.useEffect(() => {
 		const handleKeyDown = (event: KeyboardEvent) => {
+			const target = event.target as HTMLElement;
+			if (
+				target.tagName === "INPUT" ||
+				target.tagName === "TEXTAREA" ||
+				target.contentEditable === "true"
+			) {
+				return;
+			}
+
 			const key = event.key;
 			const keyNumber = parseInt(key);
 

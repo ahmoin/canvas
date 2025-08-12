@@ -5,6 +5,8 @@ import * as React from "react";
 interface DrawSettingsProps {
 	brushColor: string;
 	onBrushColorChange: (color: string) => void;
+	brushSize: number;
+	onBrushSizeChange: (size: number) => void;
 }
 
 function hsvToRgb(h: number, s: number, v: number): [number, number, number] {
@@ -103,13 +105,20 @@ function rgbToHex(r: number, g: number, b: number): string {
 export function DrawSettings({
 	brushColor,
 	onBrushColorChange,
+	brushSize,
+	onBrushSizeChange,
 }: DrawSettingsProps) {
 	const [rgb] = React.useState(() => hexToRgb(brushColor));
 	const [hsv, setHsv] = React.useState(() => rgbToHsv(rgb[0], rgb[1], rgb[2]));
 	const [isDraggingSV, setIsDraggingSV] = React.useState(false);
 	const [isDraggingHue, setIsDraggingHue] = React.useState(false);
+	const [isDraggingSize, setIsDraggingSize] = React.useState(false);
+	const [dragStartPos, setDragStartPos] = React.useState({ x: 0, y: 0 });
+	const [dragStartValue, setDragStartValue] = React.useState(0);
+	const [mouseDownOnInput, setMouseDownOnInput] = React.useState(false);
 	const svRef = React.useRef<HTMLButtonElement>(null);
 	const hueRef = React.useRef<HTMLButtonElement>(null);
+	const sizeInputRef = React.useRef<HTMLInputElement>(null);
 
 	const updateColor = React.useCallback(
 		(newHsv: [number, number, number]) => {
@@ -154,22 +163,77 @@ export function DrawSettings({
 		updateColor([hue, hsv[1], hsv[2]]);
 	};
 
+	const handleSizeMouseDown = (e: React.MouseEvent) => {
+		setMouseDownOnInput(true);
+		setDragStartPos({ x: e.clientX, y: e.clientY });
+		setDragStartValue(brushSize);
+
+		e.preventDefault();
+	};
+
+	const handleSizeDrag = React.useCallback(
+		(e: MouseEvent) => {
+			if (!mouseDownOnInput) return;
+
+			const deltaX = e.clientX - dragStartPos.x;
+			const deltaY = dragStartPos.y - e.clientY;
+			const totalMovement = Math.abs(deltaX) + Math.abs(deltaY);
+
+			if (totalMovement > 3 && !isDraggingSize) {
+				setIsDraggingSize(true);
+				if (sizeInputRef.current) {
+					sizeInputRef.current.blur();
+				}
+				document.getSelection()?.removeAllRanges();
+			}
+
+			if (isDraggingSize) {
+				const delta = deltaX + deltaY;
+				const sensitivity = 0.2;
+				const newValue = Math.max(
+					1,
+					Math.min(50, Math.round(dragStartValue + delta * sensitivity)),
+				);
+				onBrushSizeChange(newValue);
+			}
+		},
+		[
+			mouseDownOnInput,
+			dragStartPos.x,
+			dragStartPos.y,
+			isDraggingSize,
+			dragStartValue,
+			onBrushSizeChange,
+		],
+	);
+
 	// biome-ignore lint/correctness/useExhaustiveDependencies: handle color change dependencies change on every re-render and should not be used as hook dependencies
 	React.useEffect(() => {
-		const handleMouseMove = (e: React.MouseEvent | MouseEvent) => {
+		const handleMouseMove = (e: MouseEvent) => {
 			if (isDraggingSV) {
 				handleSVMove(e);
 			} else if (isDraggingHue) {
 				handleHueMove(e);
+			} else if (mouseDownOnInput) {
+				handleSizeDrag(e);
 			}
 		};
 
 		const handleMouseUp = () => {
+			// If we were tracking mouse down but never started dragging, it was just a click
+			if (mouseDownOnInput && !isDraggingSize && sizeInputRef.current) {
+				// Focus and select all text for easy editing
+				sizeInputRef.current.focus();
+				sizeInputRef.current.select();
+			}
+
 			setIsDraggingSV(false);
 			setIsDraggingHue(false);
+			setIsDraggingSize(false);
+			setMouseDownOnInput(false);
 		};
 
-		if (isDraggingSV || isDraggingHue) {
+		if (isDraggingSV || isDraggingHue || mouseDownOnInput) {
 			document.addEventListener("mousemove", handleMouseMove);
 			document.addEventListener("mouseup", handleMouseUp);
 		}
@@ -178,7 +242,16 @@ export function DrawSettings({
 			document.removeEventListener("mousemove", handleMouseMove);
 			document.removeEventListener("mouseup", handleMouseUp);
 		};
-	}, [isDraggingSV, isDraggingHue]);
+	}, [
+		isDraggingSV,
+		isDraggingHue,
+		isDraggingSize,
+		mouseDownOnInput,
+		dragStartPos,
+		dragStartValue,
+		brushSize,
+		onBrushSizeChange,
+	]);
 
 	const svStyle = {
 		background: `linear-gradient(to bottom, transparent 0%, black 100%), linear-gradient(to right, white 0%, transparent 100%)`,
@@ -241,7 +314,33 @@ export function DrawSettings({
 					style={{ backgroundColor: brushColor }}
 				/>
 				<span className="text-xs font-mono">{brushColor.toUpperCase()}</span>
-				<span className="text-xs font-mono">{brushColor.toUpperCase()}</span>
+			</div>
+
+			<div className="mt-3">
+				<label
+					htmlFor="stroke-width"
+					className="text-sm font-medium mb-2 block"
+				>
+					Stroke Width
+				</label>
+				<input
+					ref={sizeInputRef}
+					id="stroke-width"
+					type="number"
+					min="1"
+					max="50"
+					step="1"
+					value={brushSize}
+					onChange={(e) => {
+						const value = Math.max(
+							1,
+							Math.min(50, parseInt(e.target.value) || 1),
+						);
+						onBrushSizeChange(value);
+					}}
+					onMouseDown={handleSizeMouseDown}
+					className="w-full px-2 py-1 text-sm border border-border rounded bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent cursor-ns-resize select-none"
+				/>
 			</div>
 		</div>
 	);
