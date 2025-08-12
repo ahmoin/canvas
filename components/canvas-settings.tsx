@@ -66,7 +66,7 @@ export function CanvasSettings({
 							htmlFor="offset-x"
 							className="text-xs font-medium mb-1 block"
 						>
-							X Offset
+							X
 						</label>
 						<DragNumberInput
 							id="offset-x"
@@ -85,7 +85,7 @@ export function CanvasSettings({
 							htmlFor="offset-y"
 							className="text-xs font-medium mb-1 block"
 						>
-							Y Offset
+							Y
 						</label>
 						<DragNumberInput
 							id="offset-y"

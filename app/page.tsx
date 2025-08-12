@@ -17,8 +17,27 @@ export default function Home() {
 	const [isMouseDown, setIsMouseDown] = React.useState(false);
 	const [isGrabbing, setIsGrabbing] = React.useState(false);
 	const [isDrawing, setIsDrawing] = React.useState(false);
-	const [offset, setOffset] = React.useState<Point>({ x: 0, y: 0 });
-	const [zoom, setZoom] = React.useState(1);
+	const [centerX, setCenterX] = React.useState(() => {
+		if (typeof window !== "undefined") {
+			const saved = localStorage.getItem("canvas-centerX");
+			return saved ? parseFloat(saved) : 0;
+		}
+		return 0;
+	});
+	const [centerY, setCenterY] = React.useState(() => {
+		if (typeof window !== "undefined") {
+			const saved = localStorage.getItem("canvas-centerY");
+			return saved ? parseFloat(saved) : 0;
+		}
+		return 0;
+	});
+	const [zoom, setZoom] = React.useState(() => {
+		if (typeof window !== "undefined") {
+			const saved = localStorage.getItem("canvas-zoom");
+			return saved ? parseFloat(saved) : 1;
+		}
+		return 1;
+	});
 	const [lastMousePos, setLastMousePos] = React.useState<Point>({ x: 0, y: 0 });
 	const convexPaths = useQuery(api.myFunctions.getPaths) || [];
 	const addPath = useMutation(api.myFunctions.addPath);
@@ -33,12 +52,14 @@ export default function Home() {
 			if (!canvas) return { x: 0, y: 0 };
 
 			const rect = canvas.getBoundingClientRect();
-			return {
-				x: (clientX - rect.left - offset.x) / zoom,
-				y: (clientY - rect.top - offset.y) / zoom,
-			};
+			const screenX = clientX - rect.left;
+			const screenY = clientY - rect.top;
+			const worldX = centerX + (screenX - canvas.width / 2) / zoom;
+			const worldY = centerY + (screenY - canvas.height / 2) / zoom;
+
+			return { x: worldX, y: worldY };
 		},
-		[offset, zoom],
+		[centerX, centerY, zoom],
 	);
 
 	const drawPaths = React.useCallback(
@@ -88,13 +109,14 @@ export default function Home() {
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 		ctx.save();
-		ctx.translate(offset.x, offset.y);
+		ctx.translate(canvas.width / 2, canvas.height / 2);
 		ctx.scale(zoom, zoom);
+		ctx.translate(-centerX, -centerY);
 
 		drawPaths(ctx);
 
 		ctx.restore();
-	}, [offset, zoom, drawPaths]);
+	}, [centerX, centerY, zoom, drawPaths]);
 
 	const resizeCanvas = React.useCallback(() => {
 		const canvas = canvasRef.current;
@@ -117,6 +139,24 @@ export default function Home() {
 	React.useEffect(() => {
 		redraw();
 	}, [redraw]);
+
+	React.useEffect(() => {
+		if (typeof window !== "undefined") {
+			localStorage.setItem("canvas-centerX", centerX.toString());
+		}
+	}, [centerX]);
+
+	React.useEffect(() => {
+		if (typeof window !== "undefined") {
+			localStorage.setItem("canvas-centerY", centerY.toString());
+		}
+	}, [centerY]);
+
+	React.useEffect(() => {
+		if (typeof window !== "undefined") {
+			localStorage.setItem("canvas-zoom", zoom.toString());
+		}
+	}, [zoom]);
 
 	React.useEffect(() => {
 		const preventDefaultZoom = (e: WheelEvent) => {
@@ -162,10 +202,8 @@ export default function Home() {
 			const deltaX = e.clientX - lastMousePos.x;
 			const deltaY = e.clientY - lastMousePos.y;
 
-			setOffset((prev) => ({
-				x: prev.x + deltaX,
-				y: prev.y + deltaY,
-			}));
+			setCenterX((prev) => prev - deltaX / zoom);
+			setCenterY((prev) => prev - deltaY / zoom);
 
 			setLastMousePos({ x: e.clientX, y: e.clientY });
 		} else if (selectedTool === "Draw" && isDrawing) {
@@ -188,29 +226,23 @@ export default function Home() {
 			const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
 			const newZoom = zoom * zoomFactor;
 
-			const zoomRatio = newZoom / zoom;
-			setOffset((prev) => ({
-				x: mouseX - (mouseX - prev.x) * zoomRatio,
-				y: mouseY - (mouseY - prev.y) * zoomRatio,
-			}));
+			const worldX = centerX + (mouseX - canvas.width / 2) / zoom;
+			const worldY = centerY + (mouseY - canvas.height / 2) / zoom;
+
+			setCenterX(worldX - (mouseX - canvas.width / 2) / newZoom);
+			setCenterY(worldY - (mouseY - canvas.height / 2) / newZoom);
 
 			setZoom(newZoom);
 		} else if (e.shiftKey) {
 			const panSpeed = 50;
 			const deltaX = e.deltaY > 0 ? panSpeed : -panSpeed;
 
-			setOffset((prev) => ({
-				x: prev.x + deltaX,
-				y: prev.y,
-			}));
+			setCenterX((prev) => prev + deltaX / zoom);
 		} else {
 			const panSpeed = 50;
 			const deltaY = e.deltaY > 0 ? panSpeed : -panSpeed;
 
-			setOffset((prev) => ({
-				x: prev.x,
-				y: prev.y + deltaY,
-			}));
+			setCenterY((prev) => prev + deltaY / zoom);
 		}
 	};
 
@@ -245,10 +277,10 @@ export default function Home() {
 						onBrushSizeChange={setBrushSize}
 						zoom={zoom}
 						onZoomChange={setZoom}
-						offsetX={offset.x}
-						offsetY={offset.y}
-						onOffsetXChange={(x) => setOffset((prev) => ({ ...prev, x }))}
-						onOffsetYChange={(y) => setOffset((prev) => ({ ...prev, y }))}
+						offsetX={centerX}
+						offsetY={centerY}
+						onOffsetXChange={setCenterX}
+						onOffsetYChange={setCenterY}
 					/>
 				</div>
 			</main>
