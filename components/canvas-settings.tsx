@@ -3,6 +3,16 @@
 import * as React from "react";
 import { DragNumberInput } from "@/components/drag-number-input";
 import { DrawSettings } from "@/components/draw-settings";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+	Drawer,
+	DrawerContent,
+	DrawerHeader,
+	DrawerTitle,
+	DrawerTrigger,
+} from "@/components/ui/drawer";
+import { Button } from "@/components/ui/button";
+import { Settings } from "lucide-react";
 
 interface CanvasSettingsProps {
 	selectedTool: string | null;
@@ -32,9 +42,36 @@ export function CanvasSettings({
 	onOffsetYChange,
 }: CanvasSettingsProps) {
 	const [showColorPicker, setShowColorPicker] = React.useState(false);
+	const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
+	const isMobile = useIsMobile();
 
-	return (
-		<div className="absolute left-4 top-1/2 -translate-y-1/2 bg-background border border-border rounded-lg p-4 shadow-lg space-y-4">
+	const handleDragStart = (e: React.TouchEvent) => {
+		const touch = e.touches[0];
+		const startY = touch.clientY;
+
+		const handleDragMove = (moveEvent: TouchEvent) => {
+			const currentTouch = moveEvent.touches[0];
+			const deltaY = startY - currentTouch.clientY;
+
+			// If dragged up more than 50px, open the drawer
+			if (deltaY > 50) {
+				setIsDrawerOpen(true);
+				document.removeEventListener("touchmove", handleDragMove);
+				document.removeEventListener("touchend", handleDragEnd);
+			}
+		};
+
+		const handleDragEnd = () => {
+			document.removeEventListener("touchmove", handleDragMove);
+			document.removeEventListener("touchend", handleDragEnd);
+		};
+
+		document.addEventListener("touchmove", handleDragMove, { passive: false });
+		document.addEventListener("touchend", handleDragEnd);
+	};
+
+	const SettingsContent = () => (
+		<div className="space-y-4">
 			<div>
 				<h3 className="text-sm font-medium mb-3">Canvas</h3>
 
@@ -151,6 +188,39 @@ export function CanvasSettings({
 					</div>
 				</div>
 			)}
+		</div>
+	);
+
+	if (isMobile) {
+		return (
+			<Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+				<DrawerTrigger asChild>
+					<div
+						className="fixed bottom-0 left-1/2 -translate-x-1/2 z-50 cursor-pointer"
+						onTouchStart={handleDragStart}
+					>
+						<div className="py-2 flex items-center gap-1 ">
+							<div className="w-16 h-2 bg-muted rounded-full" />
+							<span className="text-xs text-muted-foreground">Settings</span>
+							<div className="w-16 h-2 bg-muted rounded-full" />
+						</div>
+					</div>
+				</DrawerTrigger>
+				<DrawerContent>
+					<DrawerHeader>
+						<DrawerTitle>Canvas Settings</DrawerTitle>
+					</DrawerHeader>
+					<div className="px-4 pb-4">
+						<SettingsContent />
+					</div>
+				</DrawerContent>
+			</Drawer>
+		);
+	}
+
+	return (
+		<div className="absolute left-4 top-1/2 -translate-y-1/2 bg-background border border-border rounded-lg p-4 shadow-lg">
+			<SettingsContent />
 		</div>
 	);
 }
