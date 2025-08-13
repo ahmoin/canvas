@@ -328,13 +328,13 @@ export default function Home() {
 		}
 	}, [selectedTool]);
 
-	const handleMouseDown = (e: React.MouseEvent) => {
+	const handlePointerDown = (clientX: number, clientY: number) => {
 		setIsMouseDown(true);
-		const point = getCanvasPoint(e.clientX, e.clientY);
+		const point = getCanvasPoint(clientX, clientY);
 
 		if (selectedTool === "Drag") {
 			setIsGrabbing(true);
-			setLastMousePos({ x: e.clientX, y: e.clientY });
+			setLastMousePos({ x: clientX, y: clientY });
 		} else if (selectedTool === "Selection") {
 			const foundPath = findPathAtPoint(point.x, point.y);
 			if (foundPath) {
@@ -370,6 +370,19 @@ export default function Home() {
 		}
 	};
 
+	const handleMouseDown = (e: React.MouseEvent) => {
+		e.preventDefault();
+		handlePointerDown(e.clientX, e.clientY);
+	};
+
+	const handleTouchStart = (e: React.TouchEvent) => {
+		e.preventDefault();
+		if (e.touches.length === 1) {
+			const touch = e.touches[0];
+			handlePointerDown(touch.clientX, touch.clientY);
+		}
+	};
+
 	const handleMouseUp = () => {
 		if (isDrawing && currentPath.length > 1) {
 			addPath({
@@ -385,18 +398,30 @@ export default function Home() {
 		setIsDrawing(false);
 	};
 
-	const handleMouseMove = (e: React.MouseEvent) => {
+	const handlePointerMove = (clientX: number, clientY: number) => {
 		if (selectedTool === "Drag" && isGrabbing) {
-			const deltaX = e.clientX - lastMousePos.x;
-			const deltaY = e.clientY - lastMousePos.y;
+			const deltaX = clientX - lastMousePos.x;
+			const deltaY = clientY - lastMousePos.y;
 
 			setCenterX((prev) => prev - deltaX / zoom);
 			setCenterY((prev) => prev - deltaY / zoom);
 
-			setLastMousePos({ x: e.clientX, y: e.clientY });
+			setLastMousePos({ x: clientX, y: clientY });
 		} else if (selectedTool === "Draw" && isDrawing) {
-			const point = getCanvasPoint(e.clientX, e.clientY);
+			const point = getCanvasPoint(clientX, clientY);
 			setCurrentPath((prev) => [...prev, point]);
+		}
+	};
+
+	const handleMouseMove = (e: React.MouseEvent) => {
+		handlePointerMove(e.clientX, e.clientY);
+	};
+
+	const handleTouchMove = (e: React.TouchEvent) => {
+		e.preventDefault();
+		if (e.touches.length === 1) {
+			const touch = e.touches[0];
+			handlePointerMove(touch.clientX, touch.clientY);
 		}
 	};
 
@@ -557,7 +582,11 @@ export default function Home() {
 						onMouseUp={handleMouseUp}
 						onMouseMove={handleMouseMove}
 						onMouseLeave={handleMouseUp}
+						onTouchStart={handleTouchStart}
+						onTouchEnd={handleMouseUp}
+						onTouchMove={handleTouchMove}
 						onWheel={handleWheel}
+						style={{ touchAction: "none" }}
 					/>
 
 					<CanvasSettings
