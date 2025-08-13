@@ -30,6 +30,8 @@ export default function Home() {
 	const [selectedTool, setSelectedTool] = React.useState<string | null>("Drag");
 	const [showAuthModal, setShowAuthModal] = React.useState(false);
 	const [authFlow, setAuthFlow] = React.useState<"signIn" | "signUp">("signUp");
+	const [showNameModal, setShowNameModal] = React.useState(false);
+	const [nameInput, setNameInput] = React.useState("");
 	const [isMouseDown, setIsMouseDown] = React.useState(false);
 	const [isGrabbing, setIsGrabbing] = React.useState(false);
 	const [isDrawing, setIsDrawing] = React.useState(false);
@@ -61,6 +63,8 @@ export default function Home() {
 		[convexPathsQuery],
 	);
 	const addPath = useMutation(api.myFunctions.addPath);
+	const currentUser = useQuery(api.users.viewer);
+	const updateUniqueName = useMutation(api.users.updateUniqueName);
 	const [currentPath, setCurrentPath] = React.useState<Point[]>([]);
 	const [brushColor, setBrushColor] = React.useState("#000000");
 	const [brushSize, setBrushSize] = React.useState(2.0);
@@ -199,6 +203,10 @@ export default function Home() {
 		} else if (selectedTool === "Draw") {
 			if (!isAuthenticated) {
 				setShowAuthModal(true);
+				return;
+			}
+			if (!currentUser?.uniqueName) {
+				setShowNameModal(true);
 				return;
 			}
 			setIsDrawing(true);
@@ -417,6 +425,61 @@ export default function Home() {
 									</button>
 								</div>
 							</div>
+						</DialogContent>
+					</Dialog>
+
+					<Dialog open={showNameModal} onOpenChange={setShowNameModal}>
+						<DialogContent>
+							<DialogHeader>
+								<DialogTitle>Set your username to start drawing</DialogTitle>
+								<DialogDescription>
+									Please choose an username to identify your drawings. This name
+									will be visible to other users.
+								</DialogDescription>
+							</DialogHeader>
+							<form
+								onSubmit={async (e) => {
+									e.preventDefault();
+									if (!nameInput.trim()) {
+										toast.error("Name cannot be empty");
+										return;
+									}
+
+									try {
+										await updateUniqueName({ uniqueName: nameInput.trim() });
+										setShowNameModal(false);
+										setNameInput("");
+										toast.success("Name set successfully!");
+									} catch (error) {
+										const errorMessage =
+											error instanceof Error
+												? error.message
+														.split("Uncaught Error: ")[1]
+														?.split(" at handler")[0] || error.message
+												: "Failed to set name";
+										toast.error(errorMessage);
+									}
+								}}
+							>
+								<div className="grid gap-4">
+									<div className="grid gap-2">
+										<Label htmlFor="uniqueName">Your username</Label>
+										<Input
+											id="uniqueName"
+											type="text"
+											value={nameInput}
+											onChange={(e) => {
+												setNameInput(e.target.value);
+											}}
+											placeholder="Enter your username"
+											required
+										/>
+									</div>
+									<Button type="submit" className="w-full">
+										Set username
+									</Button>
+								</div>
+							</form>
 						</DialogContent>
 					</Dialog>
 				</div>

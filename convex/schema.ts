@@ -9,6 +9,7 @@ export default defineSchema({
 	...authTables,
 	users: defineTable({
 		name: v.optional(v.string()),
+		uniqueName: v.optional(v.string()),
 		image: v.optional(v.string()),
 		email: v.optional(v.string()),
 		emailVerificationTime: v.optional(v.number()),
@@ -18,7 +19,8 @@ export default defineSchema({
 		favoriteColor: v.optional(v.string()),
 	})
 		.index("email", ["email"])
-		.index("phone", ["phone"]),
+		.index("phone", ["phone"])
+		.index("by_uniqueName", ["uniqueName"]),
 	paths: defineTable({
 		points: v.array(
 			v.object({
