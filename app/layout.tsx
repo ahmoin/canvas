@@ -49,9 +49,11 @@ export default function RootLayout({
 					<ConvexClientProvider>
 						<ThemeProvider>
 							<div className="min-h-screen flex flex-col">
-								<section className="theme-container flex-1">{children}</section>
+								<section className="theme-container flex-1">
+									{children}
+									<Toaster position="top-center" richColors />
+								</section>
 							</div>
-							<Toaster position="top-center" richColors />
 						</ThemeProvider>
 					</ConvexClientProvider>
 				</body>
