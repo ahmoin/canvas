@@ -31,5 +31,7 @@ export default defineSchema({
 		color: v.string(),
 		width: v.number(),
 		createdAt: v.number(),
+		authorId: v.id("users"),
+		authorName: v.string(),
 	}),
 });

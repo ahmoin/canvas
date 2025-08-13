@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
 const pointSchema = v.object({
 	x: v.number(),
@@ -26,6 +27,12 @@ export const addPath = mutation({
 		width: v.number(),
 	},
 	handler: async (ctx, args) => {
+		const userId = await getAuthUserId(ctx);
+		if (!userId) throw new Error("Not authenticated");
+
+		const user = await ctx.db.get(userId);
+		if (!user?.uniqueName) throw new Error("User must have a unique name set");
+
 		const clampedWidth = Math.max(0.0000001, Math.min(50, args.width));
 
 		return await ctx.db.insert("paths", {
@@ -33,6 +40,8 @@ export const addPath = mutation({
 			color: args.color,
 			width: clampedWidth,
 			createdAt: Date.now(),
+			authorId: userId,
+			authorName: user.uniqueName,
 		});
 	},
 });
