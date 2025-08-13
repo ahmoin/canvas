@@ -30,7 +30,7 @@ export function SiteHeader({
 						<div className="text-primary-foreground flex size-8 items-center justify-center rounded-md">
 							<Icons.logo className="size-8" />
 						</div>
-						<span className="text-xl font-bold text-primary">Canvas</span>
+						<span className="text-xl font-bold text-primary hidden sm:block">Canvas</span>
 					</div>
 				</Link>
 
