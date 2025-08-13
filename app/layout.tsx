@@ -11,7 +11,7 @@ import { META_THEME_COLORS } from "@/lib/config";
 
 export const metadata: Metadata = {
 	title: "Canvas",
-	description: "Your mental health companion",
+	description: "ahmoin's infinite realtime canvas",
 	icons: {
 		icon: "/canvas.svg",
 	},
