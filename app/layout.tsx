@@ -11,7 +11,7 @@ import { META_THEME_COLORS } from "@/lib/config";
 
 export const metadata: Metadata = {
 	title: "Canvas",
-	description: "ahmoin's infinite realtime canvas",
+	description: "ahmoin's collaborative real-time drawing application built with Next.js and Convex. Draw, edit, and create together on an infinite canvas.",
 	icons: {
 		icon: "/canvas.svg",
 	},
