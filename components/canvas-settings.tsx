@@ -33,9 +33,6 @@ export function CanvasSettings({
 }: CanvasSettingsProps) {
 	const [showColorPicker, setShowColorPicker] = React.useState(false);
 
-	const handleColorSelectionComplete = () => {
-		setShowColorPicker(false);
-	};
 	return (
 		<div className="absolute left-4 top-1/2 -translate-y-1/2 bg-background border border-border rounded-lg p-4 shadow-lg space-y-4">
 			<div>
@@ -147,7 +144,6 @@ export function CanvasSettings({
 								<DrawSettings
 									brushColor={brushColor}
 									onBrushColorChange={onBrushColorChange}
-									onColorSelectionComplete={handleColorSelectionComplete}
 									onClose={() => setShowColorPicker(false)}
 								/>
 							)}

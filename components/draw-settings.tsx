@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 interface DrawSettingsProps {
 	brushColor: string;
 	onBrushColorChange: (color: string) => void;
-	onColorSelectionComplete?: () => void;
 	onClose?: () => void;
 }
 
@@ -107,7 +106,6 @@ function rgbToHex(r: number, g: number, b: number): string {
 export function DrawSettings({
 	brushColor,
 	onBrushColorChange,
-	onColorSelectionComplete,
 	onClose,
 }: DrawSettingsProps) {
 	const [rgb] = React.useState(() => hexToRgb(brushColor));
@@ -171,13 +169,8 @@ export function DrawSettings({
 		};
 
 		const handleMouseUp = () => {
-			const wasInteracting = isDraggingSV || isDraggingHue;
 			setIsDraggingSV(false);
 			setIsDraggingHue(false);
-
-			if (wasInteracting && onColorSelectionComplete) {
-				onColorSelectionComplete();
-			}
 		};
 
 		if (isDraggingSV || isDraggingHue) {
