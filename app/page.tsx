@@ -55,7 +55,11 @@ export default function Home() {
 		return 1;
 	});
 	const [lastMousePos, setLastMousePos] = React.useState<Point>({ x: 0, y: 0 });
-	const convexPaths = useQuery(api.myFunctions.getPaths) || [];
+	const convexPathsQuery = useQuery(api.myFunctions.getPaths);
+	const convexPaths = React.useMemo(
+		() => convexPathsQuery || [],
+		[convexPathsQuery],
+	);
 	const addPath = useMutation(api.myFunctions.addPath);
 	const [currentPath, setCurrentPath] = React.useState<Point[]>([]);
 	const [brushColor, setBrushColor] = React.useState("#000000");
