@@ -7,12 +7,6 @@ const pointSchema = v.object({
 	y: v.number(),
 });
 
-const pathSchema = v.object({
-	points: v.array(pointSchema),
-	color: v.string(),
-	width: v.number(),
-});
-
 export const getPaths = query({
 	args: {},
 	handler: async (ctx) => {
@@ -46,12 +40,56 @@ export const addPath = mutation({
 	},
 });
 
-// export const clearPaths = mutation({
-//   args: {},
-//   handler: async (ctx) => {
-//     const paths = await ctx.db.query("paths").collect();
-//     for (const path of paths) {
-//       await ctx.db.delete(path._id);
-//     }
-//   },
-// });
+export const updatePath = mutation({
+	args: {
+		pathId: v.id("paths"),
+		color: v.optional(v.string()),
+		width: v.optional(v.number()),
+	},
+	handler: async (ctx, args) => {
+		const userId = await getAuthUserId(ctx);
+		if (!userId) throw new Error("Not authenticated");
+
+		const path = await ctx.db.get(args.pathId);
+		if (!path) throw new Error("Path not found");
+
+		if (path.authorId !== userId)
+			throw new Error("Not authorized to edit this path");
+
+		const updates: Partial<{ color: string; width: number }> = {};
+		if (args.color !== undefined) updates.color = args.color;
+		if (args.width !== undefined)
+			updates.width = Math.max(0.0000001, Math.min(50, args.width));
+
+		await ctx.db.patch(args.pathId, updates);
+		return { success: true };
+	},
+});
+
+export const clearInvalidPaths = mutation({
+	args: {},
+	handler: async (ctx) => {
+		const paths = await ctx.db.query("paths").collect();
+		let deletedCount = 0;
+
+		for (const path of paths) {
+			if (!path.authorId || !path.authorName) {
+				await ctx.db.delete(path._id);
+				deletedCount++;
+			}
+		}
+
+		return { deletedCount };
+	},
+});
+
+export const clearAllPaths = mutation({
+	args: {},
+	handler: async (ctx) => {
+		const paths = await ctx.db.query("paths").collect();
+		for (const path of paths) {
+			await ctx.db.delete(path._id);
+		}
+		return { deletedCount: paths.length };
+	},
+});

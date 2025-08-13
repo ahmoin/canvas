@@ -5,6 +5,7 @@ import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import * as React from "react";
 import { toast } from "sonner";
 import { CanvasSettings } from "@/components/canvas-settings";
+import { SelectSettings } from "@/components/select-settings";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,11 +18,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 
 interface Point {
 	x: number;
 	y: number;
+}
+
+interface SelectedPath {
+	_id: Id<"paths">;
+	points: Point[];
+	color: string;
+	width: number;
+	createdAt: number;
+	authorId: Id<"users">;
+	authorName: string;
 }
 
 export default function Home() {
@@ -63,11 +75,21 @@ export default function Home() {
 		[convexPathsQuery],
 	);
 	const addPath = useMutation(api.myFunctions.addPath);
+	const updatePath = useMutation(api.myFunctions.updatePath);
 	const currentUser = useQuery(api.users.viewer);
 	const updateUniqueName = useMutation(api.users.updateUniqueName);
 	const [currentPath, setCurrentPath] = React.useState<Point[]>([]);
 	const [brushColor, setBrushColor] = React.useState("#000000");
 	const [brushSize, setBrushSize] = React.useState(2.0);
+	const [selectedPath, setSelectedPath] = React.useState<SelectedPath | null>(
+		null,
+	);
+	const [selectionBounds, setSelectionBounds] = React.useState<{
+		x: number;
+		y: number;
+		width: number;
+		height: number;
+	} | null>(null);
 	const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
 	const getCanvasPoint = React.useCallback(
@@ -85,6 +107,86 @@ export default function Home() {
 		},
 		[centerX, centerY, zoom],
 	);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: distanceToLineSegment changes on every re-render and should not be used as a hook dependency.
+	const findPathAtPoint = React.useCallback(
+		(worldX: number, worldY: number) => {
+			for (let i = convexPaths.length - 1; i >= 0; i--) {
+				const path = convexPaths[i];
+				if (path.points.length < 2) continue;
+
+				for (let j = 0; j < path.points.length - 1; j++) {
+					const p1 = path.points[j];
+					const p2 = path.points[j + 1];
+
+					const distance = distanceToLineSegment(
+						worldX,
+						worldY,
+						p1.x,
+						p1.y,
+						p2.x,
+						p2.y,
+					);
+					const threshold = Math.max(5, path.width) / zoom;
+
+					if (distance <= threshold) {
+						return path;
+					}
+				}
+			}
+			return null;
+		},
+		[convexPaths, zoom],
+	);
+
+	const distanceToLineSegment = (
+		px: number,
+		py: number,
+		x1: number,
+		y1: number,
+		x2: number,
+		y2: number,
+	) => {
+		const dx = x2 - x1;
+		const dy = y2 - y1;
+		const length = Math.sqrt(dx * dx + dy * dy);
+
+		if (length === 0) return Math.sqrt((px - x1) ** 2 + (py - y1) ** 2);
+
+		const t = Math.max(
+			0,
+			Math.min(1, ((px - x1) * dx + (py - y1) * dy) / (length * length)),
+		);
+		const projX = x1 + t * dx;
+		const projY = y1 + t * dy;
+
+		return Math.sqrt((px - projX) ** 2 + (py - projY) ** 2);
+	};
+
+	const calculatePathBounds = React.useCallback((path: SelectedPath) => {
+		if (path.points.length === 0) return null;
+
+		let minX = path.points[0].x;
+		let maxX = path.points[0].x;
+		let minY = path.points[0].y;
+		let maxY = path.points[0].y;
+
+		path.points.forEach((point: Point) => {
+			minX = Math.min(minX, point.x);
+			maxX = Math.max(maxX, point.x);
+			minY = Math.min(minY, point.y);
+			maxY = Math.max(maxY, point.y);
+		});
+
+		// Add padding based on stroke width
+		const padding = path.width / 2;
+		return {
+			x: minX - padding,
+			y: minY - padding,
+			width: maxX - minX + padding * 2,
+			height: maxY - minY + padding * 2,
+		};
+	}, []);
 
 	const drawPaths = React.useCallback(
 		(ctx: CanvasRenderingContext2D) => {
@@ -106,6 +208,21 @@ export default function Home() {
 				ctx.restore();
 			});
 
+			// Draw selection bounds
+			if (selectedPath && selectionBounds) {
+				ctx.save();
+				ctx.strokeStyle = "#3b82f6";
+				ctx.lineWidth = 2 / zoom;
+				ctx.setLineDash([5 / zoom, 5 / zoom]);
+				ctx.strokeRect(
+					selectionBounds.x,
+					selectionBounds.y,
+					selectionBounds.width,
+					selectionBounds.height,
+				);
+				ctx.restore();
+			}
+
 			if (currentPath.length > 1) {
 				ctx.save();
 				ctx.strokeStyle = brushColor;
@@ -122,7 +239,15 @@ export default function Home() {
 				ctx.restore();
 			}
 		},
-		[convexPaths, currentPath, brushColor, brushSize],
+		[
+			convexPaths,
+			currentPath,
+			brushColor,
+			brushSize,
+			selectedPath,
+			selectionBounds,
+			zoom,
+		],
 	);
 
 	const redraw = React.useCallback(() => {
@@ -193,6 +318,14 @@ export default function Home() {
 		return () => document.removeEventListener("wheel", preventDefaultZoom);
 	}, []);
 
+	// Clear selection when switching away from Selection tool
+	React.useEffect(() => {
+		if (selectedTool !== "Selection") {
+			setSelectedPath(null);
+			setSelectionBounds(null);
+		}
+	}, [selectedTool]);
+
 	const handleMouseDown = (e: React.MouseEvent) => {
 		setIsMouseDown(true);
 		const point = getCanvasPoint(e.clientX, e.clientY);
@@ -200,6 +333,16 @@ export default function Home() {
 		if (selectedTool === "Drag") {
 			setIsGrabbing(true);
 			setLastMousePos({ x: e.clientX, y: e.clientY });
+		} else if (selectedTool === "Selection") {
+			const foundPath = findPathAtPoint(point.x, point.y);
+			if (foundPath) {
+				setSelectedPath(foundPath);
+				const bounds = calculatePathBounds(foundPath);
+				setSelectionBounds(bounds);
+			} else {
+				setSelectedPath(null);
+				setSelectionBounds(null);
+			}
 		} else if (selectedTool === "Draw") {
 			if (!isAuthenticated) {
 				setShowAuthModal(true);
@@ -281,9 +424,63 @@ export default function Home() {
 	const getCursorClass = () => {
 		if (selectedTool === "Drag") {
 			return isMouseDown ? "cursor-grabbing" : "cursor-grab";
+		} else if (selectedTool === "Selection") {
+			return "cursor-pointer";
 		}
 		return "";
 	};
+
+	const handleSelectedPathColorChange = React.useCallback(
+		async (color: string) => {
+			if (!selectedPath) return;
+
+			try {
+				await updatePath({
+					pathId: selectedPath._id,
+					color,
+				});
+				setSelectedPath((prev: SelectedPath | null) =>
+					prev ? { ...prev, color } : null,
+				);
+			} catch (error) {
+				const errorMessage =
+					error instanceof Error
+						? error.message
+								.split("Uncaught Error: ")[1]
+								?.split(" at handler")[0] || error.message
+						: "Failed to update path";
+				toast.error(errorMessage);
+			}
+		},
+		[selectedPath, updatePath],
+	);
+
+	const handleSelectedPathWidthChange = React.useCallback(
+		async (width: number) => {
+			if (!selectedPath) return;
+
+			try {
+				await updatePath({
+					pathId: selectedPath._id,
+					width,
+				});
+				setSelectedPath((prev: SelectedPath | null) =>
+					prev ? { ...prev, width } : null,
+				);
+				const bounds = calculatePathBounds({ ...selectedPath, width });
+				setSelectionBounds(bounds);
+			} catch (error) {
+				const errorMessage =
+					error instanceof Error
+						? error.message
+								.split("Uncaught Error: ")[1]
+								?.split(" at handler")[0] || error.message
+						: "Failed to update path";
+				toast.error(errorMessage);
+			}
+		},
+		[selectedPath, updatePath, calculatePathBounds],
+	);
 
 	return (
 		<div className="min-h-screen bg-background">
@@ -317,6 +514,18 @@ export default function Home() {
 						onOffsetXChange={setCenterX}
 						onOffsetYChange={setCenterY}
 					/>
+
+					{selectedPath && selectedTool === "Selection" && (
+						<SelectSettings
+							selectedPath={selectedPath}
+							onColorChange={handleSelectedPathColorChange}
+							onWidthChange={handleSelectedPathWidthChange}
+							onClose={() => {
+								setSelectedPath(null);
+								setSelectionBounds(null);
+							}}
+						/>
+					)}
 
 					<Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
 						<DialogContent>
