@@ -3,7 +3,6 @@
 import * as React from "react";
 import { DragNumberInput } from "@/components/drag-number-input";
 import { DrawSettings } from "@/components/draw-settings";
-import { useIsMobile } from "@/hooks/use-mobile";
 import {
 	Drawer,
 	DrawerContent,
@@ -11,8 +10,7 @@ import {
 	DrawerTitle,
 	DrawerTrigger,
 } from "@/components/ui/drawer";
-import { Button } from "@/components/ui/button";
-import { Settings } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface CanvasSettingsProps {
 	selectedTool: string | null;
