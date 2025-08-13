@@ -34,4 +34,11 @@ export default defineSchema({
 		authorId: v.id("users"),
 		authorName: v.string(),
 	}),
+	rateLimits: defineTable({
+		userId: v.id("users"),
+		uniqueName: v.string(),
+		windowStart: v.number(),
+		requestCount: v.number(),
+		lastRequest: v.number(),
+	}).index("by_user", ["userId"]),
 });

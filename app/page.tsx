@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
+import { getTextPaths } from "@/lib/character-paths";
 
 interface Point {
 	x: number;
@@ -75,6 +76,7 @@ export default function Home() {
 		[convexPathsQuery],
 	);
 	const addPath = useMutation(api.myFunctions.addPath);
+	const addPaths = useMutation(api.myFunctions.addPaths);
 	const updatePath = useMutation(api.myFunctions.updatePath);
 	const currentUser = useQuery(api.users.viewer);
 	const updateUniqueName = useMutation(api.users.updateUniqueName);
@@ -90,6 +92,9 @@ export default function Home() {
 		width: number;
 		height: number;
 	} | null>(null);
+	const [showTextInput, setShowTextInput] = React.useState(false);
+	const [textInput, setTextInput] = React.useState("");
+	const [textPosition, setTextPosition] = React.useState<Point>({ x: 0, y: 0 });
 	const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
 	const getCanvasPoint = React.useCallback(
@@ -178,7 +183,6 @@ export default function Home() {
 			maxY = Math.max(maxY, point.y);
 		});
 
-		// Add padding based on stroke width
 		const padding = path.width / 2;
 		return {
 			x: minX - padding,
@@ -208,7 +212,6 @@ export default function Home() {
 				ctx.restore();
 			});
 
-			// Draw selection bounds
 			if (selectedPath && selectionBounds) {
 				ctx.save();
 				ctx.strokeStyle = "#3b82f6";
@@ -318,7 +321,6 @@ export default function Home() {
 		return () => document.removeEventListener("wheel", preventDefaultZoom);
 	}, []);
 
-	// Clear selection when switching away from Selection tool
 	React.useEffect(() => {
 		if (selectedTool !== "Selection") {
 			setSelectedPath(null);
@@ -343,6 +345,17 @@ export default function Home() {
 				setSelectedPath(null);
 				setSelectionBounds(null);
 			}
+		} else if (selectedTool === "Text") {
+			if (!isAuthenticated) {
+				setShowAuthModal(true);
+				return;
+			}
+			if (!currentUser?.uniqueName) {
+				setShowNameModal(true);
+				return;
+			}
+			setTextPosition(point);
+			setShowTextInput(true);
 		} else if (selectedTool === "Draw") {
 			if (!isAuthenticated) {
 				setShowAuthModal(true);
@@ -426,9 +439,55 @@ export default function Home() {
 			return isMouseDown ? "cursor-grabbing" : "cursor-grab";
 		} else if (selectedTool === "Selection") {
 			return "cursor-pointer";
+		} else if (selectedTool === "Text") {
+			return "cursor-text";
 		}
 		return "";
 	};
+
+	const handleTextSubmit = React.useCallback(async () => {
+		if (!textInput.trim()) {
+			toast.error("Text cannot be empty");
+			return;
+		}
+
+		const textPaths = getTextPaths(
+			textInput,
+			textPosition.x,
+			textPosition.y,
+			1,
+			25,
+		);
+
+		const pathsToCreate = textPaths
+			.filter((path) => path.length > 0)
+			.map((points) => ({
+				points,
+				color: brushColor,
+				width: brushSize,
+			}));
+
+		if (pathsToCreate.length === 0) {
+			toast.error("No valid characters to draw");
+			return;
+		}
+
+		try {
+			const result = await addPaths({ paths: pathsToCreate });
+
+			setShowTextInput(false);
+			setTextInput("");
+			toast.success(`Text added successfully! Created ${result.count} paths.`);
+		} catch (error) {
+			const errorMessage =
+				error instanceof Error
+					? error.message
+							.split("Uncaught Error: ")[1]
+							?.split(" at handler")[0] || error.message
+					: "Failed to add text";
+			toast.error(errorMessage);
+		}
+	}, [textInput, textPosition, brushColor, brushSize, addPaths]);
 
 	const handleSelectedPathColorChange = React.useCallback(
 		async (color: string) => {
@@ -687,6 +746,51 @@ export default function Home() {
 									<Button type="submit" className="w-full">
 										Set username
 									</Button>
+								</div>
+							</form>
+						</DialogContent>
+					</Dialog>
+
+					<Dialog open={showTextInput} onOpenChange={setShowTextInput}>
+						<DialogContent>
+							<DialogHeader>
+								<DialogTitle>Add Text</DialogTitle>
+								<DialogDescription>
+									Enter the text you want to add to the canvas. Each character
+									will be drawn as paths.
+								</DialogDescription>
+							</DialogHeader>
+							<form
+								onSubmit={(e) => {
+									e.preventDefault();
+									handleTextSubmit();
+								}}
+							>
+								<div className="grid gap-4">
+									<div className="grid gap-2">
+										<Label htmlFor="textInput">Text</Label>
+										<Input
+											id="textInput"
+											type="text"
+											value={textInput}
+											onChange={(e) => setTextInput(e.target.value)}
+											placeholder="Enter your text"
+											required
+											autoFocus
+										/>
+									</div>
+									<div className="flex gap-2">
+										<Button type="submit" className="flex-1">
+											Add Text
+										</Button>
+										<Button
+											type="button"
+											variant="outline"
+											onClick={() => setShowTextInput(false)}
+										>
+											Cancel
+										</Button>
+									</div>
 								</div>
 							</form>
 						</DialogContent>
